@@ -1,0 +1,140 @@
+<html>
+    <head>
+        <title>3D Viewer</title>
+        
+        <style type="text/css">
+            body {
+                background-color: #000000;
+            }
+
+            #viewer {
+                border: 1px solid #FFFFFF;
+            }
+            
+            #canvas-div {
+                width: 640px;
+                margin: 0 auto;
+            }
+            
+            #progress-bar {
+                position:relative;
+                width: 300px;
+                height: 20px;
+                top: -230px;
+                left: 170px;
+            }
+            
+            #viewer-controls {
+                position: relative;
+                top: -60px;
+                left: 20px;
+                color: #FFFFFF;
+                width: 200px;
+                height: 30px;
+            }
+            
+            #viewer-controls a {
+                cursor: pointer;
+                font-size: 20px;
+                margin: 0 2px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvas-div">
+            <canvas id="viewer" width="640px" height="480px">
+                Error in loading 3D Viewer.
+            </canvas>
+            <div id="progress-bar">
+                
+            </div>
+            <div id="viewer-controls">
+                <a id="viewer-translate">Move</a>
+                <a id="viewer-rotate">Rotate</a>
+                <a id="viewer-zoom">Zoom</a>
+            </div>
+        </div>
+        
+        
+        <script id="2d-vertex-shader" type="x-shader/x-vertex">
+            attribute vec4 vPosition;
+            attribute vec3 vNormal;
+            attribute vec2 vTexCoord;
+            
+            uniform mat4 uModelMat;
+            uniform mat4 uViewMat;
+            uniform mat4 uProjMat;
+            uniform mat3 uNormMat;
+            
+            uniform vec4 vLightPos;
+            
+            varying vec4 vfEyePos;
+            varying vec3 vfNormal;
+            varying vec2 vfTexCoord;
+            varying vec4 vfLightPos;
+            
+            void main() {
+                mat4 mvMat = uViewMat * uModelMat;
+            
+                vfEyePos = mvMat * vPosition;
+                vfNormal = uNormMat * vNormal;
+                vfTexCoord = vTexCoord;
+                vfLightPos = uViewMat * vLightPos;
+            
+                gl_Position = uProjMat * mvMat * vPosition;
+            }
+        </script>
+        
+        <script id="2d-fragment-shader" type="x-shader/x-fragment">
+            precision highp float;
+        
+            varying vec4 vfEyePos;
+            varying vec3 vfNormal;
+            varying vec2 vfTexCoord;
+            varying vec4 vfLightPos;
+            
+            uniform sampler2D uTexture;
+            
+            uniform vec3 uAmbtColor;
+            uniform vec3 uDiffColor;
+            uniform vec3 uSpecColor;
+            uniform float uShininess;
+            uniform float uSpecStrength;
+        
+            void main() {  
+                float specular = 0.0;
+            
+                vec3 eye = normalize(-vfEyePos.xyz);
+                vec3 norm = normalize(vfNormal);
+                vec3 light = normalize(vfLightPos.xyz - vfEyePos.xyz);
+                
+                float intensity = max(dot(light, norm), 0.0);
+                
+                if (intensity > 0.0) {
+                    vec3 halfVec = normalize(eye + light);
+                    
+                    float specDotProd = max(dot(halfVec,norm), 0.0);
+                    
+                    specular = pow(specDotProd, uShininess);
+                }
+                
+                vec3 color = uAmbtColor * texture2D(uTexture, vfTexCoord).rgb +
+                    intensity * uDiffColor + 
+                    specular * uSpecStrength * uSpecColor;
+                    
+                gl_FragColor = vec4(color, 1.0);
+            }
+        </script>
+           
+        <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+
+        <script src="js/jquery/jquery-3.0.0.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+        <script src="js/glmatrix/gl-matrix-min.js"></script>
+        
+        <script src="js/loader.js"></script>
+        <script src="js/model.js"></script>
+        <script src="js/renderer.js"></script>
+        <script src="js/viewer.js"></script>
+    </body>
+</html>
